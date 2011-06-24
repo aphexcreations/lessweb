@@ -76,6 +76,7 @@ LessWeb.process = function (res, fpath, data) {
         lessParser.parse(data, function (err, tree) {
             if (err) {
                 console.error(err);
+                LessWeb.err(res);
                 return false;
             }
             LessWeb.write(res, tree.toCSS());
@@ -84,6 +85,7 @@ LessWeb.process = function (res, fpath, data) {
     }
     catch (e) {
         console.error('Parser encountered an unknown error: ' + e);
+        LessWeb.err(res);
         return false;
     }
     return true;
