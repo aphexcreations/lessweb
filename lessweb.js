@@ -38,12 +38,18 @@ function request (req, res) {
         err(res);
         return false;
     }
-    Fs.readFile(fpath, 'utf-8', function (err, data) {
-        if (err) {
+    Fs.readFile(fpath, 'utf-8', function (err1, data1) {
+        if (err1) {
             err();
             return false;
         }
-        write(res, data);
+        Less.render(data1, function (err2, data2) {
+            if (err2) {
+                err();
+                return false;
+            }
+            write(res, data2);
+        });
         return true;
     });
     return true;
@@ -115,7 +121,7 @@ function getOptions (args) {
     optParser = new Optparse.OptionParser([
         ['-h', '--help', 'Show this help.'],
         ['-p', '--port NUMBER', 'Port to listen on. Default is 61775.'],
-        ['-s', '--listen', 'Interface to listen on. Default is 127.0.0.1.']
+        ['-s', '--listen', 'Interface to listen on. Default is "127.0.0.1".']
     ]);
     optParser.banner = "Usage: node lessweb.js ROOT [OPTIONS]";
     optParser.on('help', function (val) {
@@ -150,6 +156,9 @@ function getOptions (args) {
     optParser.parse(args);
     if (options.help) {
         console.log(optParser.toString());
+        console.log();
+        console.log('ROOT is the root directory from ' +
+                    'which files .less files are retrieved.');
         process.exit(0);
     }
     else if (options.root === null) {
