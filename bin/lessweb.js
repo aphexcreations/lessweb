@@ -1,5 +1,11 @@
 #!/usr/bin/env node
 
+/**
+ * Less.js Web Converter for Node.js
+ *
+ * Author: Brendon Crawford
+ * Homepage: https://github.com/last/lessweb
+ */
 
 /*jslint white: true, devel: true, rhino: true, onevar: true, undef: true, nomen: true, eqeqeq: true, plusplus: false, bitwise: true, regexp: true, newcap: true, immed: true, maxlen: 80 */
 /*global require, setInterval, clearInterval, process */
@@ -11,44 +17,42 @@ var Less = require('less');
 var Http = require('http');
 var Optparse = require('optparse');
 
-var options = null;
+
+var LessWeb = {};
+LessWeb.options = null;
 
 
-function main (args) {
-    options = getOptions(args);
-    startServer(options.listen, options.port);
-    return 0;
-}
-
-
-function startServer (listen, port) {
-    Http.createServer(request).listen(port, listen);
-    return true;
-}
-
-
-function request (req, res) {
+/**
+ * Request Handler
+ *
+ * Args:
+ *   req (Http.ServerRequest)
+ *   res (Http.ServerResponse)
+ *
+ * Returns: boolean
+ */
+LessWeb.request = function (req, res) {
     var fpath, fstat;
-    fpath = getPath(options.root, req.url);
+    fpath = LessWeb.getPath(LessWeb.options.root, req.url);
     if (fpath === null) {
-        err(res);
+        LessWeb.err(res);
         return false;
     }
-    if (fileStat(fpath) !== 1) {
+    if (LessWeb.fileStat(fpath) !== 1) {
         err(res);
         return false;
     }
     Fs.readFile(fpath, 'utf-8', function (err1, data1) {
         if (err1) {
-            err();
+            LessWeb.err();
             return false;
         }
         Less.render(data1, function (err2, data2) {
             if (err2) {
-                err();
+                LessWeb.err();
                 return false;
             }
-            write(res, data2);
+            LessWeb.write(res, data2);
         });
         return true;
     });
@@ -56,21 +60,62 @@ function request (req, res) {
 }
 
 
-function write (res, data) {
-    res.writeHead(200, {'Content-Type': 'text/plain'});
+/**
+ *  Start Server
+ *
+ * Args:
+ *   listen (string)
+ *   port (integer)
+ *
+ * Returns: boolean
+ */
+LessWeb.startServer = function (listen, port) {
+    Http.createServer(LessWeb.request).listen(port, listen);
+    return true;
+}
+
+
+/**
+ * Write Out Css
+ *
+ * Args:
+ *   res (Http.ServerRequest)
+ *   data (string)
+ *
+ * Returns: boolean
+ */
+LessWeb.write = function (res, data) {
+    res.writeHead(200, {'Content-Type': 'text/css'});
     res.end(data);
     return true;
 }
 
 
-function err (res) {
-    res.writeHead(404, {'Content-Type': 'text/plain'});
+/**
+ * Write Out an Error
+ *
+ * Args:
+ *   res (Http.ServerRequest)
+ *
+ * Returns: boolean
+ */
+LessWeb.err = function (res) {
+    res.writeHead(404, {'Content-Type': 'text/css'});
     res.end('');
     return true;
 }
 
 
-function getPath (root, url) {
+/**
+ * Constructs a Path
+ *
+ * Args:
+ *   root (string)
+ *   url (string)
+ *
+ * Returns: string
+ */
+LessWeb.getPath = function (root, url) {
     var fparts, dparts, pth, i, _i, out;
     if (url.length <= 1) {
         return null;
@@ -91,7 +136,18 @@ function getPath (root, url) {
 }
 
 
-function fileStat (fpath) {
+/**
+ * Gets File Information
+ *
+ * Args:
+ *   fpath (string)
+ *
+ * Returns: integer
+ *   0 - File does not exist
+ *   1 - File is a file
+ *   2 - File is a directory
+ */
+LessWeb.fileStat = function (fpath) {
     var s, exists, type;
     exists = true;
     try {
@@ -110,9 +166,17 @@ function fileStat (fpath) {
 }
 
 
-function getOptions (args) {
-    var options, optParser;
-    options = {
+/**
+ * Setup Command Line Options
+ *
+ * Args:
+ *   args (Array)
+ *
+ * Returns: Object
+ */
+LessWeb.getOptions = function (args) {
+    var opts, optParser;
+    opts = {
         'help' : false,
         'port' : 61775,
         'listen' : '127.0.0.1',
@@ -125,13 +189,13 @@ function getOptions (args) {
     ]);
     optParser.banner = "Usage: node lessweb.js ROOT [OPTIONS]";
     optParser.on('help', function (val) {
-        options.help = true;
+        opts.help = true;
         return true;
     });
     optParser.on(2, function (val) {
         var fpath, fstat;
         fpath = (val.slice(-1) === '/' ? val.slice(0, -1) : val);
-        fstat = fileStat(fpath);
+        fstat = LessWeb.fileStat(fpath);
         if (fstat === 0) {
             console.log(fpath + ' does not exist');
             process.exit(1);
@@ -141,33 +205,48 @@ function getOptions (args) {
             process.exit(1);
         }
         else {
-            options.root = fpath;
+            opts.root = fpath;
         }
         return true;
     });
     optParser.on('port', function (name, val) {
-        options.port = parseInt(val, 10);
+        opts.port = parseInt(val, 10);
         return true;
     });
     optParser.on('listen', function (name, val) {
-        options.listen = val;
+        opts.listen = val;
         return true;
     });
     optParser.parse(args);
-    if (options.help) {
+    if (opts.help) {
         console.log(optParser.toString());
         console.log();
         console.log('ROOT is the root directory from ' +
                     'which files .less files are retrieved.');
         process.exit(0);
     }
-    else if (options.root === null) {
+    else if (opts.root === null) {
         console.log('ROOT is required')
         process.exit(1);
     }
-    return options;
+    return opts;
 };
 
 
-main(process.argv);
+/**
+ * Main
+ *
+ * Args:
+ *   args (Array)
+ *
+ * Returns: integer
+ */
+LessWeb.main = function (args) {
+    LessWeb.options = LessWeb.getOptions(args);
+    LessWeb.startServer(LessWeb.options.listen, LessWeb.options.port);
+    return 0;
+}
+
+
+LessWeb.main(process.argv);
 
