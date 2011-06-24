@@ -34,12 +34,13 @@ LessWeb.options = null;
 LessWeb.request = function (req, res) {
     var fpath, fstat;
     fpath = LessWeb.getPath(LessWeb.options.root, req.url);
+    console.log('Request ' + req.url + ' ' + fpath);
     if (fpath === null) {
         LessWeb.err(res);
         return false;
     }
     if (LessWeb.fileStat(fpath) !== 1) {
-        err(res);
+        LessWeb.err(res);
         return false;
     }
     Fs.readFile(fpath, 'utf-8', function (err1, data1) {
