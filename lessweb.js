@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
+
 /*jslint white: true, devel: true, rhino: true, onevar: true, undef: true, nomen: true, eqeqeq: true, plusplus: false, bitwise: true, regexp: true, newcap: true, immed: true, maxlen: 80 */
 /*global require, setInterval, clearInterval, process */
 "use strict";
 
-var Path = require('path');
+
 var Fs = require('fs');
-var Sys = require('sys');
 var Less = require('less');
 var Http = require('http');
 var Optparse = require('optparse');
@@ -28,16 +28,38 @@ function startServer (listen, port) {
 
 
 function request (req, res) {
-    var pth;
-    pth = getPath(options.root, req.url);
-    if (pth !== null) {
-        res.writeHead(200, {'Content-Type': 'text/plain'});
-        res.end(pth);
+    var fpath, fstat;
+    fpath = getPath(options.root, req.url);
+    if (fpath === null) {
+        err(res);
+        return false;
     }
-    else {
-        res.writeHead(404, {'Content-Type': 'text/plain'});
-        res.end('Error');
+    if (fileStat(fpath) !== 1) {
+        err(res);
+        return false;
     }
+    Fs.readFile(fpath, 'utf-8', function (err, data) {
+        if (err) {
+            err();
+            return false;
+        }
+        write(res, data);
+        return true;
+    });
+    return true;
+}
+
+
+function write (res, data) {
+    res.writeHead(200, {'Content-Type': 'text/plain'});
+    res.end(data);
+    return true;
+}
+
+
+function err (res) {
+    res.writeHead(404, {'Content-Type': 'text/plain'});
+    res.end('');
     return true;
 }
 
@@ -63,6 +85,25 @@ function getPath (root, url) {
 }
 
 
+function fileStat (fpath) {
+    var s, exists, type;
+    exists = true;
+    try {
+        s = Fs.statSync(fpath);
+    }
+    catch (e) {
+        exists = false;
+    }
+    if (exists) {
+        type = (s.isDirectory() ? 2 : 1);
+    }
+    else {
+        type = 0;
+    }
+    return type;
+}
+
+
 function getOptions (args) {
     var options, optParser;
     options = {
@@ -82,7 +123,20 @@ function getOptions (args) {
         return true;
     });
     optParser.on(2, function (val) {
-        options.root = (val.slice(-1) === '/' ? val.slice(0, -1) : val);
+        var fpath, fstat;
+        fpath = (val.slice(-1) === '/' ? val.slice(0, -1) : val);
+        fstat = fileStat(fpath);
+        if (fstat === 0) {
+            console.log(fpath + ' does not exist');
+            process.exit(1);
+        }
+        else if (fstat !== 2) {
+            console.log(fpath + ' is not a directory');
+            process.exit(1);
+        }
+        else {
+            options.root = fpath;
+        }
         return true;
     });
     optParser.on('port', function (name, val) {
@@ -104,10 +158,6 @@ function getOptions (args) {
     }
     return options;
 };
-
-//fs.readFile(input, 'utf-8', function (e, data) {
-//   console.log(data);
-//});
 
 
 main(process.argv);
