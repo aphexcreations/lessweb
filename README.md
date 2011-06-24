@@ -10,3 +10,8 @@ Examples:
     node ./lessweb.js /var/www/ --listen 127.0.0.1 --port 61775
     wget http://127.0.0.1:61775/css/foo.less
 
+Installing Dependencies:
+
+    sudo npm install --global less
+    sudo npm install --global optparse
+
