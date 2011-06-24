@@ -16,6 +16,7 @@ var Fs = require('fs');
 var Less = require('less');
 var Http = require('http');
 var Optparse = require('optparse');
+var Path = require('path');
 
 
 var LessWeb = {};
@@ -48,17 +49,45 @@ LessWeb.request = function (req, res) {
             LessWeb.err(res);
             return false;
         }
-        Less.render(data1, function (err2, data2) {
-            if (err2) {
-                LessWeb.err(res);
-                return false;
-            }
-            LessWeb.write(res, data2);
-        });
+        LessWeb.process(res, fpath, data1);
         return true;
     });
     return true;
-}
+};
+
+
+/**
+ * Send data to be processed by LessJS
+ *
+ * Args:
+ *  res (Http.ServerResponse)
+ *  data (string)
+ *
+ * Returns: boolean
+ */
+LessWeb.process = function (res, fpath, data) {
+    var lessParser, opts;
+    opts = {
+        paths: [Path.dirname(fpath)],
+        filename: Path.basename(fpath)
+    };
+    lessParser = new(Less.Parser)(opts);
+    try {
+        lessParser.parse(data, function (err, tree) {
+            if (err) {
+                console.error(err);
+                return false;
+            }
+            LessWeb.write(res, tree.toCSS());
+            return true;
+        });
+    }
+    catch (e) {
+        console.error('Parser encountered an unknown error: ' + e);
+        return false;
+    }
+    return true;
+};
 
 
 /**
@@ -73,7 +102,7 @@ LessWeb.request = function (req, res) {
 LessWeb.startServer = function (listen, port) {
     Http.createServer(LessWeb.request).listen(port, listen);
     return true;
-}
+};
 
 
 /**
@@ -89,7 +118,7 @@ LessWeb.write = function (res, data) {
     res.writeHead(200, {'Content-Type': 'text/css'});
     res.end(data);
     return true;
-}
+};
 
 
 /**
@@ -104,7 +133,7 @@ LessWeb.err = function (res) {
     res.writeHead(404, {'Content-Type': 'text/css'});
     res.end('');
     return true;
-}
+};
 
 
 /**
@@ -134,7 +163,7 @@ LessWeb.getPath = function (root, url) {
     }
     out = [root, pth].join('/');
     return out;
-}
+};
 
 
 /**
@@ -164,7 +193,7 @@ LessWeb.fileStat = function (fpath) {
         type = 0;
     }
     return type;
-}
+};
 
 
 /**
@@ -198,11 +227,11 @@ LessWeb.getOptions = function (args) {
         fpath = (val.slice(-1) === '/' ? val.slice(0, -1) : val);
         fstat = LessWeb.fileStat(fpath);
         if (fstat === 0) {
-            console.log(fpath + ' does not exist');
+            console.error(fpath + ' does not exist');
             process.exit(1);
         }
         else if (fstat !== 2) {
-            console.log(fpath + ' is not a directory');
+            console.error(fpath + ' is not a directory');
             process.exit(1);
         }
         else {
@@ -227,7 +256,7 @@ LessWeb.getOptions = function (args) {
         process.exit(0);
     }
     else if (opts.root === null) {
-        console.log('ROOT is required')
+        console.error('ROOT is required')
         process.exit(1);
     }
     return opts;
@@ -246,7 +275,7 @@ LessWeb.main = function (args) {
     LessWeb.options = LessWeb.getOptions(args);
     LessWeb.startServer(LessWeb.options.listen, LessWeb.options.port);
     return 0;
-}
+};
 
 
 LessWeb.main(process.argv);
