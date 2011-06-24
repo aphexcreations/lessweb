@@ -45,12 +45,12 @@ LessWeb.request = function (req, res) {
     }
     Fs.readFile(fpath, 'utf-8', function (err1, data1) {
         if (err1) {
-            LessWeb.err();
+            LessWeb.err(res);
             return false;
         }
         Less.render(data1, function (err2, data2) {
             if (err2) {
-                LessWeb.err();
+                LessWeb.err(res);
                 return false;
             }
             LessWeb.write(res, data2);
