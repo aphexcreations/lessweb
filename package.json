@@ -8,7 +8,7 @@
         "lesscss",
         "lessjs"
     ],
-    "version": "0.0.2",
+    "version": "0.0.3",
     "author" : "Brendon Crawford",
     "bin": {
         "lessweb": "./bin/lessweb.js"
@@ -25,7 +25,7 @@
         "url": "git://github.com/last/lessweb.git"
     },
     "bugs": {
-        "web": "https://github.com/last/lessweb/issues"
+        "url": "https://github.com/last/lessweb/issues"
     },
     "licenses": [
         {
